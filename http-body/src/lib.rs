@@ -208,6 +208,56 @@ impl Body for String {
     }
 }
 
+impl<B: Body> Body for http_old::Request<B> {
+    type Data = B::Data;
+    type Error = B::Error;
+
+    fn poll_frame(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
+        // SAFETY:
+        // A pin projection.
+        unsafe {
+            self.map_unchecked_mut(http_old::Request::body_mut)
+                .poll_frame(cx)
+        }
+    }
+
+    fn is_end_stream(&self) -> bool {
+        self.body().is_end_stream()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.body().size_hint()
+    }
+}
+
+impl<B: Body> Body for http_old::Response<B> {
+    type Data = B::Data;
+    type Error = B::Error;
+
+    fn poll_frame(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Option<Result<Frame<Self::Data>, Self::Error>>> {
+        // SAFETY:
+        // A pin projection.
+        unsafe {
+            self.map_unchecked_mut(http_old::Response::body_mut)
+                .poll_frame(cx)
+        }
+    }
+
+    fn is_end_stream(&self) -> bool {
+        self.body().is_end_stream()
+    }
+
+    fn size_hint(&self) -> SizeHint {
+        self.body().size_hint()
+    }
+}
+
 #[cfg(test)]
 fn _assert_bounds() {
     fn can_be_trait_object(_: &dyn Body<Data = std::io::Cursor<Vec<u8>>, Error = std::io::Error>) {}
